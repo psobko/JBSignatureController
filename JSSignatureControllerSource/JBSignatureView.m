@@ -8,47 +8,33 @@
 
 #import "JBSignatureView.h"
 
+@interface JBSignatureView()
 
-
-#pragma mark - *** Private Interface ***
-
-@interface JBSignatureView() {
-
-@private
-	__strong NSMutableArray *handwritingCoords_;
-	__weak UIImage *currentSignatureImage_;
-	float lineWidth_;
-	float signatureImageMargin_;
-	BOOL shouldCropSignatureImage_;
-	__strong UIColor *foreColor_;
-	CGPoint lastTapPoint_;
-}
-
-@property(nonatomic,strong) NSMutableArray *handwritingCoords;
+@property (nonatomic, strong) NSMutableArray *handwritingCoords;
+@property (nonatomic, weak) UIImage *currentSignatureImage;
+@property (nonatomic) float lineWidth;
+@property (nonatomic,strong) UIColor *foreColor;
+@property (nonatomic) float signatureImageMargin;
+@property (nonatomic) BOOL shouldCropSignatureImage;
+@property (nonatomic) CGPoint lastTapPoint;
 
 -(void)processPoint:(CGPoint)touchLocation;
 
 @end
 
-
-
 @implementation JBSignatureView
 
 @synthesize 
-handwritingCoords = handwritingCoords_,
-lineWidth = lineWidth_,
-signatureImageMargin = signatureImageMargin_,
-shouldCropSignatureImage = shouldCropSignatureImage_,
-foreColor = foreColor_;
+handwritingCoords,
+currentSignatureImage,
+lineWidth,
+foreColor,
+signatureImageMargin,
+shouldCropSignatureImage,
+lastTapPoint;
 
+#pragma mark - init methods
 
-
-#pragma mark - *** Initializers ***
-
-/**
- * Designated initializer
- * @author Jesse Bunch
- **/
 - (id)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
     if (self) {
@@ -58,55 +44,38 @@ foreColor = foreColor_;
 		self.shouldCropSignatureImage = YES;
 		self.foreColor = [UIColor blackColor];
 		self.backgroundColor = [UIColor clearColor];
-		lastTapPoint_ = CGPointZero;
+		lastTapPoint = CGPointZero;
     }
     return self;
 }
 
+#pragma mark - draw methods
 
-
-#pragma mark - *** Drawing ***
-
-/**
- * Main drawing method. We keep an array of touch coordinates to represent
- * the user dragging their finter across the screen. This method loops through
- * those coordinates and draws a line to each. When the user lifts their finger,
- * we insert a CGPointZero object into the array and handle that here.
- * @author Jesse Bunch
- **/
 - (void)drawRect:(CGRect)rect {
 	
 	CGContextRef context = UIGraphicsGetCurrentContext();
 	
-	// Set drawing params
 	CGContextSetLineWidth(context, self.lineWidth);
 	CGContextSetStrokeColorWithColor(context, [self.foreColor CGColor]);
 	CGContextSetLineCap(context, kCGLineCapButt);
 	CGContextSetLineJoin(context, kCGLineJoinRound);
 	CGContextBeginPath(context);
-	
-	// This flag tells us to move to the point
-	// rather than draw a line to the point
+
 	BOOL isFirstPoint = YES;
 	
-	// Loop through the strings in the array
-	// which are just serialized CGPoints
-	for (NSString *touchString in self.handwritingCoords) {
+	for (NSString *touchString in self.handwritingCoords)
+    {
 		
-		// Unserialize
 		CGPoint tapLocation = CGPointFromString(touchString);
 		
-		// If we have a CGPointZero, that means the next
-		// iteration of this loop will represent the first
-		// point after a user has lifted their finger.
-		if (CGPointEqualToPoint(tapLocation, CGPointZero)) {
+		if (CGPointEqualToPoint(tapLocation, CGPointZero))
+        {
 			isFirstPoint = YES;
 			continue;
 		}
 		
-		// If first point, move to it and continue. Otherwize, draw a line from
-		// the last point to this one.
-		if (isFirstPoint) {
+		if (isFirstPoint)
+        {
 			CGContextMoveToPoint(context, tapLocation.x, tapLocation.y);
 			isFirstPoint = NO;
 		} else {
@@ -116,110 +85,72 @@ foreColor = foreColor_;
 		}
 		
 	}	
-	
-	// Stroke it, baby!
+
 	CGContextStrokePath(context);
 
 }
 
-#pragma mark - *** Touch Handling ***
+#pragma mark - touch methods
 
-/**
- * Not implemented.
- * @author Jesse Bunch
- **/
 -(void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {}
-
-/**
- * This method adds the touch to our array.
- * @author Jesse Bunch
- **/
--(void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event {
-	
+-(void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event
+{
 	UITouch *touch = [touches anyObject];
 	CGPoint touchLocation = [touch locationInView:self];
 	
 	[self processPoint:touchLocation];
-	
 }
-
-/**
- * Add a CGPointZero to our array to denote the user's finger has been
- * lifted.
- * @author Jesse Bunch
- **/
--(void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event {
+-(void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
+{
 	[self.handwritingCoords addObject:NSStringFromCGPoint(CGPointZero)];	
 }
-
-/**
- * Touches Cancelled.
- * @author Jesse Bunch
- **/
--(void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event {
+-(void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event
+{
 	[self.handwritingCoords addObject:NSStringFromCGPoint(CGPointZero)];
 }
 
+#pragma mark - private methods
 
-#pragma mark - *** Private Methods ***
-
-/**
- * Processes the point received from touch events
- * @author Jesse Bunch
- **/
--(void)processPoint:(CGPoint)touchLocation {
-	
-	// Only keep the point if it's > 5 points from the last
-	if (CGPointEqualToPoint(CGPointZero, lastTapPoint_) || 
-		fabs(touchLocation.x - lastTapPoint_.x) > 2.0f ||
-		fabs(touchLocation.y - lastTapPoint_.y) > 2.0f) {
+-(void)processPoint:(CGPoint)touchLocation
+{
+	if (CGPointEqualToPoint(CGPointZero, lastTapPoint) || 
+		fabs(touchLocation.x - lastTapPoint.x) > 2.0f ||
+		fabs(touchLocation.y - lastTapPoint.y) > 2.0f) {
 		
 		[self.handwritingCoords addObject:NSStringFromCGPoint(touchLocation)];
 		[self setNeedsDisplay];
-		lastTapPoint_ = touchLocation;
+		lastTapPoint = touchLocation;
 		
 	}
 	
 }
 
 
-#pragma mark - *** Public Methods ***
+#pragma mark - public methods
 
-/**
- * Returns a UIImage with the signature cropped and centered with the margin
- * specified in the signatureImageMargin property.
- * @author Jesse Bunch
- **/
--(UIImage *)getSignatureImage {
-	
-	// Grab the image
+-(UIImage *)getSignatureImage
+{
 	UIGraphicsBeginImageContext(self.bounds.size);
 	[self drawRect: self.bounds];
 	UIImage *signatureImage = UIGraphicsGetImageFromCurrentImageContext();
 	UIGraphicsEndImageContext();
-	
-	// Stop here if we're not supposed to crop
-	if (!self.shouldCropSignatureImage) {
+
+	if (!self.shouldCropSignatureImage)
+    {
 		return signatureImage;
 	}
 	
-	// Crop bound floats
-	// Give really high limits to min values so at least one tap
-	// location will be set as the minimum...
 	float minX = 99999999.0f, minY = 999999999.0f, maxX = 0.0f, maxY = 0.0f;
 	
-	// Loop through current coordinates to get the crop bounds
-	for (NSString *touchString in self.handwritingCoords) {
-		
-		// Unserialize
+	for (NSString *touchString in self.handwritingCoords)
+    {
 		CGPoint tapLocation = CGPointFromString(touchString);
 		
-		// Ignore CGPointZero
-		if (CGPointEqualToPoint(tapLocation, CGPointZero)) {
+		if (CGPointEqualToPoint(tapLocation, CGPointZero))
+        {
 			continue;
 		}
 		
-		// Set boundaries
 		if (tapLocation.x < minX) minX = tapLocation.x;
 		if (tapLocation.x > maxX) maxX = tapLocation.x;
 		if (tapLocation.y < minY) minY = tapLocation.y;
@@ -227,31 +158,22 @@ foreColor = foreColor_;
 		
 	}
 	
-	// Crop to the bounds (include a margin)
-	CGRect cropRect = CGRectMake(minX - lineWidth_ - self.signatureImageMargin,
-								 minY - lineWidth_ - self.signatureImageMargin,
-								 maxX - minX + (lineWidth_ * 2.0f) + (self.signatureImageMargin * 2.0f), 
-								 maxY - minY + (lineWidth_ * 2.0f) + (self.signatureImageMargin * 2.0f));
+	CGRect cropRect = CGRectMake(minX - lineWidth - self.signatureImageMargin,
+								 minY - lineWidth - self.signatureImageMargin,
+								 maxX - minX + (lineWidth * 2.0f) + (self.signatureImageMargin * 2.0f), 
+								 maxY - minY + (lineWidth * 2.0f) + (self.signatureImageMargin * 2.0f));
+
 	CGImageRef imageRef = CGImageCreateWithImageInRect([signatureImage CGImage], cropRect);
 	
-	// Convert back to UIImage
 	UIImage *signatureImageCropped = [UIImage imageWithCGImage:imageRef];
-	
-	// All done!
-	CFRelease(imageRef);
-	return signatureImageCropped;
-	
-}
 
-/**
- * Clears any drawn signature from the screen
- * @author Jesse Bunch
- **/
--(void)clearSignature {
-	
+	CFRelease(imageRef);
+	return signatureImageCropped;	
+}
+-(void)clearSignature
+{
 	[self.handwritingCoords removeAllObjects];
 	[self setNeedsDisplay];
-	
 }
 
 
